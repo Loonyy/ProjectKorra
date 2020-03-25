@@ -62,7 +62,7 @@ public class AddCommand extends PKCommand {
 		if (!this.correctLength(sender, args.size(), 1, 2)) {
 			return;
 		} else if (args.size() == 1) { // bending add element.
-			if (!this.hasPermission(sender) || !this.isPlayer(sender)) {
+			if (!this.hasPermission(sender, args[0]) || !this.isPlayer(sender)) {
 				return;
 			}
 			this.add(sender, (Player) sender, args.get(0).toLowerCase());
