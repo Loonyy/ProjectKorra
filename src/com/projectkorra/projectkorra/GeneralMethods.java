@@ -39,6 +39,12 @@ import com.google.common.reflect.ClassPath;
 import com.griefcraft.lwc.LWC;
 import com.griefcraft.lwc.LWCPlugin;
 import com.griefcraft.model.Protection;
+import com.massivecraft.factions.Board;
+import com.massivecraft.factions.FLocation;
+import com.massivecraft.factions.FPlayer;
+import com.massivecraft.factions.FPlayers;
+import com.massivecraft.factions.Faction;
+import com.massivecraft.factions.perms.PermissibleAction;
 import com.palmergames.bukkit.towny.Towny;
 import com.palmergames.bukkit.towny.TownyMessaging;
 import com.palmergames.bukkit.towny.TownySettings;
@@ -57,10 +63,6 @@ import com.sk89q.worldguard.WorldGuard;
 import com.sk89q.worldguard.bukkit.WorldGuardPlugin;
 import com.sk89q.worldguard.protection.flags.Flags;
 import com.sk89q.worldguard.protection.flags.StateFlag;
-import com.songoda.kingdoms.constants.land.Land;
-import com.songoda.kingdoms.constants.land.SimpleChunkLocation;
-import com.songoda.kingdoms.constants.player.KingdomPlayer;
-import com.songoda.kingdoms.manager.game.GameManagement;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -87,6 +89,12 @@ import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
+import org.kingdoms.constants.kingdom.Kingdom;
+import org.kingdoms.constants.kingdom.Nation;
+import org.kingdoms.constants.land.Land;
+import org.kingdoms.constants.land.location.SimpleChunkLocation;
+import org.kingdoms.constants.player.KingdomPermission;
+import org.kingdoms.constants.player.KingdomPlayer;
 
 import com.projectkorra.projectkorra.Element.SubElement;
 import com.projectkorra.projectkorra.ability.Ability;
@@ -136,11 +144,6 @@ import com.projectkorra.projectkorra.waterbending.WaterSpout;
 import br.net.fabiozumbi12.RedProtect.Bukkit.RedProtect;
 import br.net.fabiozumbi12.RedProtect.Bukkit.Region;
 import br.net.fabiozumbi12.RedProtect.Bukkit.API.RedProtectAPI;
-import me.markeh.factionsframework.entities.FPlayer;
-import me.markeh.factionsframework.entities.FPlayers;
-import me.markeh.factionsframework.entities.Faction;
-import me.markeh.factionsframework.entities.Factions;
-import me.markeh.factionsframework.enums.Rel;
 import me.ryanhamshire.GriefPrevention.Claim;
 import me.ryanhamshire.GriefPrevention.GriefPrevention;
 import net.md_5.bungee.api.chat.ClickEvent;
@@ -1476,7 +1479,7 @@ public class GeneralMethods {
 
 		final Plugin wgp = pm.getPlugin("WorldGuard");
 		//final Plugin psp = pm.getPlugin("PreciousStones");
-		final Plugin facsfw = pm.getPlugin("FactionsFramework");
+		final Plugin facsfw = pm.getPlugin("Factions");
 		final Plugin twnp = pm.getPlugin("Towny");
 		final Plugin gpp = pm.getPlugin("GriefPrevention");
 		final Plugin lwc = pm.getPlugin("LWC");
@@ -1536,12 +1539,11 @@ public class GeneralMethods {
 			}
 
 			if (facsfw != null && respectFactions) {
-				final FPlayer fPlayer = FPlayers.getBySender(player);
-				final Faction faction = Factions.getFactionAt(location);
-				final Rel relation = fPlayer.getRelationTo(faction);
-
-				if (!(faction.isNone() || fPlayer.getFaction().equals(faction) || relation == Rel.ALLY)) {
+				final FPlayer fplayer = FPlayers.getInstance().getByPlayer(player);
+				final Faction mfaction = Board.getInstance().getFactionAt(new FLocation(location));
+				if (!(mfaction.hasAccess(fplayer, PermissibleAction.BUILD) || mfaction.isWilderness() || fplayer.isAdminBypassing())) {
 					return true;
+
 				}
 			}
 
@@ -1607,16 +1609,23 @@ public class GeneralMethods {
 			}
 
 			if (kingdoms != null && respectKingdoms) {
-				final KingdomPlayer kPlayer = GameManagement.getPlayerManager().getOfflineKingdomPlayer(player).getKingdomPlayer();
-				if (kPlayer.getKingdom() != null) {
-					final SimpleChunkLocation chunkLocation = new SimpleChunkLocation(location.getChunk());
-					final Land land = GameManagement.getLandManager().getOrLoadLand(chunkLocation);
-					final UUID owner = land.getOwnerUUID();
-					if (owner != null) {
-						if (!kPlayer.getKingdom().getKing().equals(owner)) {
-							return true;
-						}
+				final KingdomPlayer kPlayer = KingdomPlayer.getKingdomPlayer(player);
+				
+					final SimpleChunkLocation chunkLocation = new SimpleChunkLocation(player.getLocation());
+					final Land land = chunkLocation.getLand();
+					
+					if (land != null) {
+						
+						final UUID owner = land.getKingdomId(); 
+						
+						if (owner != null) {
+							
+							if (!kPlayer.hasPermission(KingdomPermission.BUILD)) {
+								return true;
+							} 
+						
 					}
+					
 				}
 
 			}
@@ -1909,7 +1918,7 @@ public class GeneralMethods {
 
 		final Plugin wgp = pm.getPlugin("WorldGuard");
 		final Plugin psp = pm.getPlugin("PreciousStones");
-		final Plugin fcp = pm.getPlugin("FactionsFramework");
+		final Plugin fcp = pm.getPlugin("Factions");
 		final Plugin twnp = pm.getPlugin("Towny");
 		final Plugin gpp = pm.getPlugin("GriefPrevention");
 		final Plugin lwc = pm.getPlugin("LWC");
@@ -1924,7 +1933,7 @@ public class GeneralMethods {
 			writeToDebug("PreciousStones v" + psp.getDescription().getVersion());
 		}
 		if (fcp != null && respectFactions) {
-			writeToDebug("FactionsFramework v" + fcp.getDescription().getVersion());
+			writeToDebug("Factions v" + fcp.getDescription().getVersion());
 		}
 		if (twnp != null && respectTowny) {
 			writeToDebug("Towny v" + twnp.getDescription().getVersion());
